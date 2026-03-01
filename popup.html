@@ -1,0 +1,39 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Netflix 单词本</title>
+    <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+    <div class="wrap">
+        <div class="header">
+            <div class="title">Netflix 单词本</div>
+            <div class="meta" id="count"></div>
+        </div>
+
+        <div class="toolbar">
+            <input id="q" class="search" placeholder="搜索单词/例句..." />
+            <button id="export" class="btn">导出 TSV</button>
+            <button id="clear" class="btn danger">清空</button>
+        </div>
+        <div class="hint" style="margin-top:8px;">
+            <label style="display:flex; gap:8px; align-items:center;">
+                <input type="checkbox" id="autoSave" />
+                点击字幕自动保存（推荐配合 Language Reactor）
+            </label>
+            <div style="margin-top:6px; opacity:.75;">
+                关闭后：按住 Alt 再点击字幕才会保存
+            </div>
+        </div>
+        <div class="hint">
+            用法：在 Netflix 播放页选中字幕单词 → 右键“保存到单词本”或按 Alt+Shift+S
+        </div>
+
+        <div id="list" class="list"></div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
