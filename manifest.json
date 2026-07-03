@@ -1,25 +1,39 @@
 {
   "manifest_version": 3,
-  "name": "Netflix Vocab",
-  "version": "0.1.0",
-  "description": "Save selected subtitle words on Netflix for personal study.",
-  "permissions": [ "storage", "contextMenus", "commands" ],
-  "host_permissions": [ "*://www.netflix.com/*" ],
-  "background": { "service_worker": "background.js" },
+  "name": "Subtitle Vocab Companion",
+  "version": "0.1.3",
+  "description": "Save subtitle vocabulary from Netflix for personal study, with English/Chinese context and Language Reactor dictionary notes.",
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "commands"
+  ],
+  "host_permissions": [
+    "*://www.netflix.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
-      "matches": [ "*://www.netflix.com/*" ],
-      "js": [ "content.js" ]
+      "matches": [
+        "*://www.netflix.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Netflix Vocab"
+    "default_title": "Subtitle Vocab Companion"
   },
   "commands": {
     "save-word": {
-      "suggested_key": { "default": "Alt+Shift+S" },
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
       "description": "Save selected word/phrase"
     }
   }
-} 
+}
