@@ -1,12 +1,12 @@
 # Subtitle Vocab Companion
 
-一个用于个人语言学习的 Chrome / Edge 扩展：在 Netflix + Language Reactor 场景下，点击英文字幕中的单词，自动保存单词、英文字幕上下文、中文字幕上下文和 Language Reactor 词典解释，之后可以导出给 Anki 复习。
+一个用于个人语言学习的 Chrome / Edge 扩展：在 Netflix / YouTube + Language Reactor 场景下，点击英文字幕中的单词，自动保存单词、英文字幕上下文、中文字幕上下文和 Language Reactor 词典解释，之后可以导出给 Anki 复习。
 
-> 非 Netflix 或 Language Reactor 官方插件。本项目只用于个人学习，请尊重网站、字幕和影视内容的版权与使用条款。
+> 非 Netflix、YouTube 或 Language Reactor 官方插件。本项目只用于个人学习，请尊重网站、字幕和影视内容的版权与使用条款。
 
 ## 功能
 
-- 在 Netflix 播放页捕获英文字幕里的单词。
+- 在 Netflix / YouTube 播放页配合 Language Reactor 捕获英文字幕里的单词。
 - 保存英文字幕句子、附近中文字幕，以及可捕获到的 Language Reactor 大词典解释。
 - 支持点击字幕自动保存，也支持关闭自动保存后按住 `Alt` 点击字幕保存。
 - 支持右键菜单保存选中的字幕词。
@@ -68,9 +68,9 @@ edge://extensions/
 ### 推荐使用方式
 
 1. 安装 Language Reactor。
-2. 打开 Netflix 播放页。
+2. 打开 Netflix 或 YouTube 播放页。
 3. 打开字幕和 Language Reactor 字幕/词典功能。
-4. 刷新一次 Netflix 播放页，确保扩展脚本注入成功。
+4. 刷新一次播放页，确保扩展脚本注入成功。
 5. 点击英文字幕里的单词。
 6. 扩展会尝试保存：
    - 单词；
@@ -94,7 +94,7 @@ edge://extensions/
 ### 右键和快捷键
 
 - 右键保存：选中字幕里的英文词，右键点击“保存到单词本”。
-- 快捷键保存：在 Netflix 播放页按 `Alt + Shift + S`。
+- 快捷键保存：在 Netflix 或 YouTube 播放页按 `Alt + Shift + S`。
 
 如果快捷键和其他扩展或系统快捷键冲突，可以在浏览器扩展快捷键页面里调整。
 
@@ -134,7 +134,8 @@ Back
 | `storage` | 保存单词、字幕上下文、词典解释和设置。 |
 | `contextMenus` | 提供右键保存入口。 |
 | `commands` | 提供快捷键保存入口。 |
-| `*://www.netflix.com/*` | 只在 Netflix 页面读取字幕和 Language Reactor 面板内容。 |
+| `*://www.netflix.com/*` | 只在 Netflix 页面读取用户可见的字幕和 Language Reactor 面板内容。 |
+| `*://www.youtube.com/*` | 只在 YouTube 页面读取用户可见的 Language Reactor 字幕和词典面板内容；不读取 YouTube 原生字幕系统。 |
 
 更完整的隐私说明见 [`PRIVACY.md`](./PRIVACY.md)。
 
@@ -144,7 +145,7 @@ Back
 
 可以按顺序检查：
 
-1. 是否在 Netflix 播放页。
+1. 是否在 Netflix 或 YouTube 播放页。
 2. 是否刷新过页面。刚安装或刚更新扩展后，旧页面通常需要刷新。
 3. 是否点击的是英文字幕区域。
 4. 弹窗里的自动保存开关是否开启。关闭时需要按住 `Alt` 点击。
@@ -158,9 +159,9 @@ Back
 
 数据保存在浏览器本地的 `chrome.storage.local` 中。清空扩展记录、移除扩展、清理浏览器数据，可能会删除这些记录。重要词表请定期导出。
 
-### 为什么只支持 Netflix
+### 支持哪些网站
 
-当前版本的权限和页面选择器都针对 Netflix + Language Reactor 使用场景编写。未来可以扩展到其他视频网站，但需要单独适配字幕 DOM 结构。
+当前版本支持 Netflix / YouTube + Language Reactor 学习场景。这里的“支持”表示扩展可以在这些网站上运行 Language Reactor 伴侣流程；不表示扩展会读取网站自己的原生字幕系统。Bilibili 仍是后续实验方向，正式支持前不会写入权限范围。
 
 ## 开发者说明
 
@@ -171,7 +172,7 @@ Back
 ```text
 manifest.json     扩展配置
 background.js     右键菜单、快捷键、本地存储写入
-content.js        Netflix 页面注入、字幕/词典内容捕获
+content.js        播放页注入、Language Reactor 字幕/词典内容捕获
 popup.html        弹窗页面
 popup.js          弹窗交互、搜索、导出
 popup.css         弹窗样式
@@ -183,7 +184,7 @@ popup.css         弹窗样式
 
 - 添加 `16x16`、`48x48`、`128x128` 图标。
 - 准备商店截图和宣传图。
-- 用更完整的测试清单检查 Netflix / Language Reactor 当前版本兼容性。
+- 用更完整的测试清单检查 Netflix / YouTube + Language Reactor 当前版本兼容性。
 - 在发布页面填写清楚单一用途、权限用途和隐私说明。
 
 可参考 [`CHROME_WEB_STORE_CHECKLIST.md`](./CHROME_WEB_STORE_CHECKLIST.md)。

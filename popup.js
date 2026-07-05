@@ -111,7 +111,7 @@ function render() {
   list.innerHTML = '';
 
   if (items.length === 0) {
-    list.innerHTML = '<div class="hint">暂无记录。去 Netflix 播放页点击字幕单词保存吧。</div>';
+    list.innerHTML = '<div class="hint">暂无记录。去 Netflix 或 YouTube 播放页配合 Language Reactor 点击字幕单词保存吧。</div>';
     return;
   }
 

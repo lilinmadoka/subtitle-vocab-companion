@@ -30,7 +30,7 @@ zip -r subtitle-vocab-companion-v0.1.3.zip manifest.json background.js content.j
 
 ### 单一用途
 
-帮助用户在 Netflix + Language Reactor 学习场景下保存英文字幕单词、字幕上下文和词典解释，并导出到 Anki 进行个人复习。
+帮助用户在 Netflix / YouTube + Language Reactor 学习场景下保存英文字幕单词、字幕上下文和词典解释，并导出到 Anki 进行个人复习。
 
 ### 权限解释
 
@@ -38,6 +38,7 @@ zip -r subtitle-vocab-companion-v0.1.3.zip manifest.json background.js content.j
 - `contextMenus`：提供右键保存入口。
 - `commands`：提供快捷键保存入口。
 - `*://www.netflix.com/*`：只在 Netflix 页面读取用户可见的字幕和 Language Reactor 词典面板内容。
+- `*://www.youtube.com/*`：只在 YouTube 页面读取用户可见的 Language Reactor 字幕和词典面板内容；不读取 YouTube 原生字幕系统。
 
 ### 隐私说明
 
@@ -45,7 +46,7 @@ zip -r subtitle-vocab-companion-v0.1.3.zip manifest.json background.js content.j
 
 ## 4. 审核风险点
 
-- 名称和描述不要让人误以为这是 Netflix 或 Language Reactor 官方插件。
+- 名称和描述不要让人误以为这是 Netflix、YouTube 或 Language Reactor 官方插件。
 - 不要声称可以绕过网站限制。
 - 不要鼓励批量复制、分发字幕或影视内容。
 - 截图中如包含影视画面或字幕，注意版权和个人用途说明。

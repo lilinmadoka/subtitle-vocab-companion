@@ -1,5 +1,9 @@
 const MENU_ID = 'nflx_save_vocab';
 const STORAGE_KEY = 'vocabItems';
+const DOCUMENT_URL_PATTERNS = [
+  '*://www.netflix.com/*',
+  '*://www.youtube.com/*'
+];
 
 function storageGet(key, fallbackValue) {
   return new Promise((resolve) => {
@@ -30,7 +34,10 @@ function sanitizeItem(item) {
     sentenceMeaning: String(item?.sentenceMeaning || '').trim(),
     url: String(item?.url || '').trim(),
     t_ms: Number.isFinite(item?.t_ms) ? item.t_ms : null,
-    createdAt: item?.createdAt || Date.now()
+    createdAt: item?.createdAt || Date.now(),
+    site: String(item?.site || '').trim(),
+    siteName: String(item?.siteName || '').trim(),
+    pageTitle: String(item?.pageTitle || '').trim()
   };
 }
 
@@ -48,7 +55,7 @@ chrome.runtime.onInstalled.addListener(() => {
     id: MENU_ID,
     title: '保存到单词本',
     contexts: ['selection'],
-    documentUrlPatterns: ['*://www.netflix.com/*']
+    documentUrlPatterns: DOCUMENT_URL_PATTERNS
   });
 });
 
@@ -77,7 +84,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       sentenceMeaning: ctx?.sentenceMeaning || '',
       url: ctx?.url || tab.url || '',
       t_ms: ctx?.t_ms ?? null,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      site: ctx?.site || '',
+      siteName: ctx?.siteName || '',
+      pageTitle: ctx?.pageTitle || tab.title || ''
     });
   } catch (error) {
     console.warn('Failed to collect context:', error);
@@ -102,7 +112,10 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
       sentenceMeaning: ctx?.sentenceMeaning || '',
       url: ctx?.url || tab.url || '',
       t_ms: ctx?.t_ms ?? null,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      site: ctx?.site || '',
+      siteName: ctx?.siteName || '',
+      pageTitle: ctx?.pageTitle || tab.title || ''
     });
   } catch (error) {
     console.warn('Hotkey save failed:', error);
