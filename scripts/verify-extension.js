@@ -70,6 +70,14 @@ hasAll(content, [
   'pageTitle'
 ], 'content LR adapter boundary');
 assert(!content.includes('sendResponse(payload || {'), 'content script must not return selected text fallback without LR payload');
+assert(
+  /const candidate = area \|\| root;[\s\S]*?isLanguageReactorElement\(candidate\) \? candidate : null;/.test(content),
+  'dictionary roots must be restricted to LR DOM'
+);
+assert(
+  /if \(!targetBlock\) return;[\s\S]*?if \(!isLanguageReactorElement\(targetBlock\)\) return;/.test(content),
+  'pointer save fallback must reject non-LR subtitle blocks'
+);
 
 hasAll(background, ['siteName', 'pageTitle'], 'background additive metadata');
 hasAll(background, [

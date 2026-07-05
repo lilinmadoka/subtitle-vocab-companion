@@ -387,7 +387,8 @@ function containsWholeWord(text, word) {
 function getDictionaryRootCandidate(root) {
   if (!(root instanceof Element) || !isVisible(root)) return null;
   const area = root.matches('.lln-dict-area') ? root : root.closest('.lln-dict-area');
-  return area || root;
+  const candidate = area || root;
+  return isLanguageReactorElement(candidate) ? candidate : null;
 }
 
 function findBestDictionaryRoot(word) {
@@ -676,6 +677,7 @@ document.addEventListener('pointerup', (event) => {
       || closestMatching(event.target, EN_SUBTITLE_SELECTORS);
 
     if (!targetBlock) return;
+    if (!isLanguageReactorElement(targetBlock)) return;
 
     const word = getWordForSave('', event.clientX, event.clientY);
     if (!word) return;
