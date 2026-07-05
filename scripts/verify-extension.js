@@ -81,11 +81,12 @@ assert(
 
 hasAll(background, ['siteName', 'pageTitle'], 'background additive metadata');
 hasAll(background, [
-  'ctx?.captureAvailable === false',
+  'ctx?.captureAvailable !== true',
+  'req.item?.captureAvailable !== true',
   'ctx?.word || selectionText'
 ], 'background context-menu LR gate');
 
-const contextMenuGateIndex = background.indexOf('ctx?.captureAvailable === false');
+const contextMenuGateIndex = background.indexOf('ctx?.captureAvailable !== true');
 const selectionFallbackIndex = background.indexOf('ctx?.word || selectionText');
 assert(
   contextMenuGateIndex !== -1 && selectionFallbackIndex !== -1 && contextMenuGateIndex < selectionFallbackIndex,

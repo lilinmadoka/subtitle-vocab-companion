@@ -41,10 +41,12 @@ Run these before manual browser testing:
 
 ```powershell
 node scripts\verify-extension.js
+node scripts\verify-background-behavior.js
 node --check content.js
 node --check background.js
 node --check popup.js
 node --check scripts\verify-extension.js
+node --check scripts\verify-background-behavior.js
 ```
 
 ## Chrome Setup
