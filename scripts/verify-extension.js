@@ -65,9 +65,11 @@ hasAll(content, [
   'lrAdapter',
   'captureAvailable: false',
   'captureAvailable: true',
+  'sendCollectedContext',
   'siteName',
   'pageTitle'
 ], 'content LR adapter boundary');
+assert(!content.includes('sendResponse(payload || {'), 'content script must not return selected text fallback without LR payload');
 
 hasAll(background, ['siteName', 'pageTitle'], 'background additive metadata');
 hasAll(background, [

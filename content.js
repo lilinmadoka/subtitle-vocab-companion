@@ -591,6 +591,15 @@ function buildEmptyContextResponse() {
   };
 }
 
+function sendCollectedContext(sendResponse, payload) {
+  if (!payload) {
+    sendResponse(buildEmptyContextResponse());
+    return;
+  }
+
+  sendResponse(payload);
+}
+
 chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req?.type === 'collectContext') {
     if (!getCurrentSite() || !lrAdapter.isAvailable()) {
@@ -614,15 +623,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       payload.wordMeaningHtml = dictData.html;
     }
 
-    sendResponse(payload || {
-      word,
-      sentence: '',
-      wordMeaning: '',
-      wordMeaningHtml: '',
-      sentenceMeaning: '',
-      url: location.href,
-      ...getPageMetadata()
-    });
+    sendCollectedContext(sendResponse, payload);
     return true;
   }
 
@@ -648,15 +649,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       payload.wordMeaningHtml = dictData.html;
     }
 
-    sendResponse(payload || {
-      word,
-      sentence: '',
-      wordMeaning: '',
-      wordMeaningHtml: '',
-      sentenceMeaning: '',
-      url: location.href,
-      ...getPageMetadata()
-    });
+    sendCollectedContext(sendResponse, payload);
     return true;
   }
 });
