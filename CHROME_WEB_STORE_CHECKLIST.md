@@ -15,7 +15,7 @@
 正确打包方式示例：
 
 ```bash
-zip -r subtitle-vocab-companion-v0.1.3.zip manifest.json background.js content.js popup.html popup.js popup.css README.md PRIVACY.md LICENSE
+zip -r subtitle-vocab-companion-v0.2.0.zip manifest.json background.js content.js popup.html popup.js popup.css README.md PRIVACY.md LICENSE LICENSE.txt
 ```
 
 不要把外层文件夹直接压进 ZIP。上传 Chrome Web Store 的 ZIP 打开后，第一层应该能直接看到 `manifest.json`。
