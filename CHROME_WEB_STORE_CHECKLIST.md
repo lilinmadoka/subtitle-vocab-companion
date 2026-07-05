@@ -9,6 +9,7 @@
 - [ ] 确认只请求必要权限。
 - [ ] 确认扩展没有不必要的网络请求。
 - [ ] 运行 `node scripts/verify-extension.js`，确认权限、文档、存储 key、导出文件名和原生字幕边界一致。
+- [ ] 按 [`docs/manual-verification.md`](./docs/manual-verification.md) 完成 Netflix / YouTube + Language Reactor 手动验收。
 - [ ] 在全新浏览器配置中测试安装。
 
 正确打包方式示例：
