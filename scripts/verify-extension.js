@@ -63,11 +63,24 @@ hasAll(content, [
   'hasLanguageReactorDom',
   'isLanguageReactorElement',
   'lrAdapter',
+  'captureAvailable: false',
+  'captureAvailable: true',
   'siteName',
   'pageTitle'
 ], 'content LR adapter boundary');
 
 hasAll(background, ['siteName', 'pageTitle'], 'background additive metadata');
+hasAll(background, [
+  'ctx?.captureAvailable === false',
+  'ctx?.word || selectionText'
+], 'background context-menu LR gate');
+
+const contextMenuGateIndex = background.indexOf('ctx?.captureAvailable === false');
+const selectionFallbackIndex = background.indexOf('ctx?.word || selectionText');
+assert(
+  contextMenuGateIndex !== -1 && selectionFallbackIndex !== -1 && contextMenuGateIndex < selectionFallbackIndex,
+  'context menu must honor captureAvailable before falling back to selected text'
+);
 
 const forbiddenNativeSubtitleReads = [
   /timedtext/i,

@@ -71,6 +71,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       type: 'collectContext',
       selectionText
     });
+    if (ctx?.captureAvailable === false) return;
 
     const word = normalize(ctx?.word || selectionText);
     if (!word) return;
@@ -100,6 +101,8 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
 
   try {
     const ctx = await chrome.tabs.sendMessage(tab.id, { type: 'collectFromHotkey' });
+    if (ctx?.captureAvailable === false) return;
+
     const word = normalize(ctx?.word || '');
     if (!word) return;
 

@@ -555,6 +555,7 @@ function buildCardPayload({ word, target, x, y }) {
 
   return {
     id: crypto.randomUUID(),
+    captureAvailable: true,
     word: normalizedWord,
     sentence,
     wordMeaning: '',
@@ -579,6 +580,7 @@ function getWordForSave(selectionText, x, y) {
 
 function buildEmptyContextResponse() {
   return {
+    captureAvailable: false,
     word: '',
     sentence: '',
     wordMeaning: '',
