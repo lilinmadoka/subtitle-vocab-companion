@@ -1,5 +1,12 @@
 const MENU_ID = 'nflx_save_vocab';
 const STORAGE_KEY = 'vocabItems';
+const DOCUMENT_URL_PATTERNS = [
+  '*://www.netflix.com/*',
+  '*://www.youtube.com/*'
+];
+const LR_CONTROL_TEXT_PATTERNS = [
+  /保存短语/g
+];
 
 function storageGet(key, fallbackValue) {
   return new Promise((resolve) => {
@@ -20,17 +27,28 @@ function normalize(text) {
     .trim();
 }
 
+function removeLrControlText(text) {
+  let value = String(text || '');
+  for (const pattern of LR_CONTROL_TEXT_PATTERNS) {
+    value = value.replace(pattern, ' ');
+  }
+  return value.trim();
+}
+
 function sanitizeItem(item) {
   return {
     id: item?.id || crypto.randomUUID(),
-    word: normalize(item?.word || ''),
-    sentence: String(item?.sentence || '').trim(),
-    wordMeaning: String(item?.wordMeaning || '').trim(),
-    wordMeaningHtml: String(item?.wordMeaningHtml || '').trim(),
-    sentenceMeaning: String(item?.sentenceMeaning || '').trim(),
+    word: normalize(removeLrControlText(item?.word || '')),
+    sentence: removeLrControlText(item?.sentence || ''),
+    wordMeaning: removeLrControlText(item?.wordMeaning || ''),
+    wordMeaningHtml: removeLrControlText(item?.wordMeaningHtml || ''),
+    sentenceMeaning: removeLrControlText(item?.sentenceMeaning || ''),
     url: String(item?.url || '').trim(),
     t_ms: Number.isFinite(item?.t_ms) ? item.t_ms : null,
-    createdAt: item?.createdAt || Date.now()
+    createdAt: item?.createdAt || Date.now(),
+    site: String(item?.site || '').trim(),
+    siteName: String(item?.siteName || '').trim(),
+    pageTitle: String(item?.pageTitle || '').trim()
   };
 }
 
@@ -48,7 +66,7 @@ chrome.runtime.onInstalled.addListener(() => {
     id: MENU_ID,
     title: '保存到单词本',
     contexts: ['selection'],
-    documentUrlPatterns: ['*://www.netflix.com/*']
+    documentUrlPatterns: DOCUMENT_URL_PATTERNS
   });
 });
 
@@ -64,6 +82,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       type: 'collectContext',
       selectionText
     });
+    if (ctx?.captureAvailable !== true) return;
 
     const word = normalize(ctx?.word || selectionText);
     if (!word) return;
@@ -77,7 +96,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       sentenceMeaning: ctx?.sentenceMeaning || '',
       url: ctx?.url || tab.url || '',
       t_ms: ctx?.t_ms ?? null,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      site: ctx?.site || '',
+      siteName: ctx?.siteName || '',
+      pageTitle: ctx?.pageTitle || tab.title || ''
     });
   } catch (error) {
     console.warn('Failed to collect context:', error);
@@ -90,6 +112,8 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
 
   try {
     const ctx = await chrome.tabs.sendMessage(tab.id, { type: 'collectFromHotkey' });
+    if (ctx?.captureAvailable !== true) return;
+
     const word = normalize(ctx?.word || '');
     if (!word) return;
 
@@ -102,7 +126,10 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
       sentenceMeaning: ctx?.sentenceMeaning || '',
       url: ctx?.url || tab.url || '',
       t_ms: ctx?.t_ms ?? null,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      site: ctx?.site || '',
+      siteName: ctx?.siteName || '',
+      pageTitle: ctx?.pageTitle || tab.title || ''
     });
   } catch (error) {
     console.warn('Hotkey save failed:', error);
@@ -111,6 +138,10 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
 
 chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req?.type !== 'addItemFromContent') return;
+  if (req.item?.captureAvailable !== true) {
+    sendResponse({ ok: false, error: 'capture unavailable' });
+    return;
+  }
 
   addItem(req.item)
     .then(() => sendResponse({ ok: true }))

@@ -14,7 +14,7 @@ Subtitle Vocab Companion 是一个个人学习用途的浏览器扩展。
 - 附近的英文字幕上下文；
 - 附近的中文字幕上下文；
 - 可捕获到的 Language Reactor 词典解释；
-- 当前 Netflix 页面 URL；
+- 当前 Netflix 或 YouTube 页面 URL；
 - 视频播放时间点；
 - 保存时间。
 
@@ -30,7 +30,9 @@ Subtitle Vocab Companion 是一个个人学习用途的浏览器扩展。
 
 ## 第三方服务
 
-本扩展运行在 Netflix 页面上，并可配合 Language Reactor 使用。Netflix 和 Language Reactor 是独立第三方服务，它们各自的数据处理方式不受本扩展控制。
+本扩展运行在 Netflix 和 YouTube 页面上，并可配合 Language Reactor 使用。Netflix、YouTube 和 Language Reactor 是独立第三方服务，它们各自的数据处理方式不受本扩展控制。
+
+本扩展不会读取 YouTube 或其他网站的原生字幕系统；只有用户正在查看的 Language Reactor 字幕、翻译和词典面板内容会被用于保存词条。
 
 ## 权限说明
 
@@ -39,7 +41,8 @@ Subtitle Vocab Companion 是一个个人学习用途的浏览器扩展。
 | `storage` | 在本地保存词条和设置。 |
 | `contextMenus` | 提供右键保存入口。 |
 | `commands` | 提供快捷键保存入口。 |
-| `*://www.netflix.com/*` | 只在 Netflix 页面读取用户正在查看的字幕和词典面板内容。 |
+| `*://www.netflix.com/*` | 只在 Netflix 页面读取用户正在查看的字幕和 Language Reactor 词典面板内容。 |
+| `*://www.youtube.com/*` | 只在 YouTube 页面读取用户正在查看的 Language Reactor 字幕和词典面板内容；不读取 YouTube 原生字幕系统。 |
 
 ## 删除数据
 

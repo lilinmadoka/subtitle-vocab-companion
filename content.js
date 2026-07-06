@@ -5,6 +5,37 @@ const DEFAULT_SETTINGS = { autoSaveOnSubtitleClick: true };
 const DICT_WAIT_TIMEOUT_MS = 1800;
 const DICT_WAIT_INTERVAL_MS = 140;
 const MAX_DICT_TEXT_LEN = 5000;
+const MAX_DICTIONARY_EXAMPLE_LINES = 3;
+const LR_CONTROL_TEXT_PATTERNS = [
+  /保存短语/g
+];
+
+const SUPPORTED_SITES = [
+  {
+    id: 'netflix',
+    name: 'Netflix',
+    matches(hostname) {
+      return hostname === 'netflix.com' || hostname.endsWith('.netflix.com');
+    }
+  },
+  {
+    id: 'youtube',
+    name: 'YouTube',
+    matches(hostname) {
+      return hostname === 'youtube.com' || hostname.endsWith('.youtube.com');
+    }
+  }
+];
+
+const LR_ROOT_SELECTORS = [
+  '#lln-subs',
+  '[id^="lln-subs"]',
+  '#lln-translations',
+  '[id^="lln-translations"]',
+  '.lln-dict-area',
+  '.lln-dict-def',
+  '[class*="lln-"]'
+];
 
 const EN_SUBTITLE_SELECTORS = [
   '#lln-subs .lln-sentence-wrap',
@@ -46,6 +77,34 @@ let toastTimer = null;
 let lastSaved = { key: '', at: 0 };
 let lastSubtitlePointer = { x: 0, y: 0, block: null, at: 0 };
 
+function getCurrentSite() {
+  const hostname = location.hostname.toLowerCase();
+  return SUPPORTED_SITES.find((site) => site.matches(hostname)) || null;
+}
+
+function getPageMetadata() {
+  const site = getCurrentSite();
+  return {
+    site: site?.id || '',
+    siteName: site?.name || '',
+    pageTitle: String(document.title || '').trim()
+  };
+}
+
+function hasLanguageReactorDom() {
+  return LR_ROOT_SELECTORS.some((selector) => document.querySelector(selector));
+}
+
+const lrAdapter = {
+  isAvailable: hasLanguageReactorDom,
+  getEnglishSubtitleBlockAtPoint,
+  findBestEnglishBlock,
+  extractSentence: extractTextWithSpaces,
+  findTranslationForBlock: findNearestChineseSubtitle,
+  extractDictionaryData,
+  waitForDictionaryData
+};
+
 chrome.storage.local.get({ [SETTINGS_KEY]: DEFAULT_SETTINGS }, (res) => {
   currentSettings = { ...DEFAULT_SETTINGS, ...(res?.[SETTINGS_KEY] || {}) };
 });
@@ -82,13 +141,22 @@ function collapseWhitespace(text) {
   return String(text || '').replace(/\s+/g, ' ').trim();
 }
 
+function removeLrControlText(text) {
+  let value = String(text || '');
+  for (const pattern of LR_CONTROL_TEXT_PATTERNS) {
+    value = value.replace(pattern, ' ');
+  }
+  return value;
+}
+
 function normalizeSentenceText(text) {
-  let value = collapseWhitespace(text);
+  let value = collapseWhitespace(removeLrControlText(text));
   if (!value) return '';
 
   value = value.replace(/\s+([,.!?;:])/g, '$1');
   value = value.replace(/([A-Za-z])\s+([’'])\s+([A-Za-z])/g, '$1$2$3');
   value = value.replace(/\b([A-Za-z]+)\s+([’'](?:s|t|re|ve|ll|d|m))\b/g, '$1$2');
+  value = value.replace(/\[\s+([^\]]+?)\s+\]/g, '[$1]');
   value = value.replace(/^([A-Z][A-Za-z0-9_-]{1,24})\s+\]\s+/, '[$1] ');
   value = value.replace(/^([A-Z][A-Za-z0-9_-]{1,24})\]\s+/, '[$1] ');
   value = value.replace(/\s{2,}/g, ' ').trim();
@@ -200,6 +268,14 @@ function closestMatching(el, selectors) {
   return null;
 }
 
+function isLanguageReactorElement(el) {
+  let node = el instanceof Element ? el : null;
+  for (let depth = 0; depth < 10 && node; depth += 1, node = node.parentElement) {
+    if (matchesAnySelector(node, LR_ROOT_SELECTORS)) return true;
+  }
+  return false;
+}
+
 function pointInsideRect(x, y, rect, padding = 0) {
   return (
     x >= rect.left - padding &&
@@ -213,7 +289,7 @@ function getEnglishSubtitleBlockAtPoint(x, y) {
   const elements = document.elementsFromPoint(x, y) || [];
   for (const el of elements) {
     const block = closestMatching(el, EN_SUBTITLE_SELECTORS);
-    if (block && isVisible(block)) {
+    if (block && isVisible(block) && isLanguageReactorElement(block)) {
       const rect = block.getBoundingClientRect();
       if (pointInsideRect(x, y, rect, 10)) return block;
     }
@@ -259,6 +335,7 @@ function collectVisibleBlocks(selectors, maxLen = 260) {
   for (const selector of selectors) {
     for (const el of document.querySelectorAll(selector)) {
       if (!(el instanceof Element) || !isVisible(el) || seen.has(el)) continue;
+      if (!isLanguageReactorElement(el)) continue;
       seen.add(el);
       const text = extractTextWithSpaces(el);
       if (!text || text.length > maxLen) continue;
@@ -274,7 +351,7 @@ function findBestEnglishBlock(word, target, x, y) {
     || closestMatching(getSelectionAnchorElement(), EN_SUBTITLE_SELECTORS)
     || getEnglishSubtitleBlockAtPoint(x, y);
 
-  if (targetBlock && isVisible(targetBlock)) return targetBlock;
+  if (targetBlock && isVisible(targetBlock) && isLanguageReactorElement(targetBlock)) return targetBlock;
 
   if (lastSubtitlePointer.block && Date.now() - lastSubtitlePointer.at < 2500) {
     const recentText = extractTextWithSpaces(lastSubtitlePointer.block);
@@ -323,7 +400,8 @@ function containsWholeWord(text, word) {
 function getDictionaryRootCandidate(root) {
   if (!(root instanceof Element) || !isVisible(root)) return null;
   const area = root.matches('.lln-dict-area') ? root : root.closest('.lln-dict-area');
-  return area || root;
+  const candidate = area || root;
+  return isLanguageReactorElement(candidate) ? candidate : null;
 }
 
 function findBestDictionaryRoot(word) {
@@ -400,18 +478,38 @@ function stripDictionaryControls(root) {
 
 function cleanDictionaryLines(text) {
   const out = [];
-  let prev = '';
+  const seen = new Set();
+  let section = '';
+  let exampleLines = 0;
 
   for (const rawLine of String(text || '').replace(/\r/g, '').split('\n')) {
-    const line = collapseWhitespace(rawLine);
+    const line = collapseWhitespace(removeLrControlText(rawLine));
     if (!line) continue;
+    if (/^示例：\s*当前文本/.test(line)) {
+      section = 'current-text-example';
+      continue;
+    }
+    if (/^示例：/.test(line)) {
+      section = 'examples';
+      exampleLines = 0;
+      continue;
+    }
+    if (section === 'current-text-example') continue;
+    if (/^>>\s*/.test(line)) continue;
     if (/^(解释|例子|语法)$/.test(line)) continue;
     if (/^(Re|Ca|Wr|Gl|Wi|Ba)(\s+(Re|Ca|Wr|Gl|Wi|Ba))*$/i.test(line)) continue;
     if (/^标记\s*>>$/i.test(line)) continue;
     if (/^[✓✔✕✖×○●◉]$/.test(line)) continue;
-    if (line === prev) continue;
+    if (/^\[[^\]]+\]$/.test(line)) continue;
+    if (section === 'examples') {
+      if (exampleLines >= MAX_DICTIONARY_EXAMPLE_LINES) continue;
+      exampleLines += 1;
+    }
+
+    const key = line.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
     out.push(line);
-    prev = line;
   }
 
   const joined = out.join('\n');
@@ -478,19 +576,20 @@ function buildCardPayload({ word, target, x, y }) {
   const normalizedWord = normalize(word || '');
   if (!normalizedWord || !isLikelyEnglishWord(normalizedWord)) return null;
 
-  const englishBlock = findBestEnglishBlock(normalizedWord, target, x, y);
+  const englishBlock = lrAdapter.findBestEnglishBlock(normalizedWord, target, x, y);
   if (!englishBlock) return null;
 
-  const sentence = extractTextWithSpaces(englishBlock);
+  const sentence = lrAdapter.extractSentence(englishBlock);
   if (!sentence) return null;
   if (!sentence.toLowerCase().includes(normalizedWord.toLowerCase())) return null;
 
-  const sentenceMeaning = findNearestChineseSubtitle(englishBlock.getBoundingClientRect());
+  const sentenceMeaning = lrAdapter.findTranslationForBlock(englishBlock.getBoundingClientRect());
   const video = document.querySelector('video');
   const t = video ? Math.floor(video.currentTime * 1000) : null;
 
   return {
     id: crypto.randomUUID(),
+    captureAvailable: true,
     word: normalizedWord,
     sentence,
     wordMeaning: '',
@@ -498,7 +597,8 @@ function buildCardPayload({ word, target, x, y }) {
     sentenceMeaning,
     url: location.href,
     t_ms: t,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    ...getPageMetadata()
   };
 }
 
@@ -512,8 +612,35 @@ function getWordForSave(selectionText, x, y) {
   return '';
 }
 
+function buildEmptyContextResponse() {
+  return {
+    captureAvailable: false,
+    word: '',
+    sentence: '',
+    wordMeaning: '',
+    wordMeaningHtml: '',
+    sentenceMeaning: '',
+    url: location.href,
+    ...getPageMetadata()
+  };
+}
+
+function sendCollectedContext(sendResponse, payload) {
+  if (!payload) {
+    sendResponse(buildEmptyContextResponse());
+    return;
+  }
+
+  sendResponse(payload);
+}
+
 chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req?.type === 'collectContext') {
+    if (!getCurrentSite() || !lrAdapter.isAvailable()) {
+      sendResponse(buildEmptyContextResponse());
+      return true;
+    }
+
     const x = lastSubtitlePointer.x || Math.round(window.innerWidth / 2);
     const y = lastSubtitlePointer.y || Math.round(window.innerHeight / 2);
     const word = getWordForSave(req.selectionText || '', x, y);
@@ -524,24 +651,22 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       y
     });
 
-    const dictData = payload?.word ? extractDictionaryData(payload.word) : null;
+    const dictData = payload?.word ? lrAdapter.extractDictionaryData(payload.word) : null;
     if (payload && dictData?.text) {
       payload.wordMeaning = dictData.text;
       payload.wordMeaningHtml = dictData.html;
     }
 
-    sendResponse(payload || {
-      word,
-      sentence: '',
-      wordMeaning: '',
-      wordMeaningHtml: '',
-      sentenceMeaning: '',
-      url: location.href
-    });
+    sendCollectedContext(sendResponse, payload);
     return true;
   }
 
   if (req?.type === 'collectFromHotkey') {
+    if (!getCurrentSite() || !lrAdapter.isAvailable()) {
+      sendResponse(buildEmptyContextResponse());
+      return true;
+    }
+
     const x = lastSubtitlePointer.x || Math.round(window.innerWidth / 2);
     const y = lastSubtitlePointer.y || Math.round(window.innerHeight / 2);
     const word = getWordForSave('', x, y);
@@ -552,26 +677,21 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       y
     });
 
-    const dictData = payload?.word ? extractDictionaryData(payload.word) : null;
+    const dictData = payload?.word ? lrAdapter.extractDictionaryData(payload.word) : null;
     if (payload && dictData?.text) {
       payload.wordMeaning = dictData.text;
       payload.wordMeaningHtml = dictData.html;
     }
 
-    sendResponse(payload || {
-      word,
-      sentence: '',
-      wordMeaning: '',
-      wordMeaningHtml: '',
-      sentenceMeaning: '',
-      url: location.href
-    });
+    sendCollectedContext(sendResponse, payload);
     return true;
   }
 });
 
 document.addEventListener('pointermove', (event) => {
-  const block = getEnglishSubtitleBlockAtPoint(event.clientX, event.clientY);
+  if (!getCurrentSite() || !lrAdapter.isAvailable()) return;
+
+  const block = lrAdapter.getEnglishSubtitleBlockAtPoint(event.clientX, event.clientY);
   if (!block) return;
   lastSubtitlePointer = {
     x: event.clientX,
@@ -583,12 +703,14 @@ document.addEventListener('pointermove', (event) => {
 
 document.addEventListener('pointerup', (event) => {
   if (!shouldAutoSave(event)) return;
+  if (!getCurrentSite() || !lrAdapter.isAvailable()) return;
 
   setTimeout(async () => {
-    const targetBlock = getEnglishSubtitleBlockAtPoint(event.clientX, event.clientY)
+    const targetBlock = lrAdapter.getEnglishSubtitleBlockAtPoint(event.clientX, event.clientY)
       || closestMatching(event.target, EN_SUBTITLE_SELECTORS);
 
     if (!targetBlock) return;
+    if (!isLanguageReactorElement(targetBlock)) return;
 
     const word = getWordForSave('', event.clientX, event.clientY);
     if (!word) return;
@@ -602,7 +724,7 @@ document.addEventListener('pointerup', (event) => {
 
     if (!item?.sentence) return;
 
-    const dictData = await waitForDictionaryData(item.word);
+    const dictData = await lrAdapter.waitForDictionaryData(item.word);
     if (dictData?.text) {
       item.wordMeaning = dictData.text;
       item.wordMeaningHtml = dictData.html;

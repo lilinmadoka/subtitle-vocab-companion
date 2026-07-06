@@ -8,12 +8,16 @@
 - [ ] 确认版本号已经递增。
 - [ ] 确认只请求必要权限。
 - [ ] 确认扩展没有不必要的网络请求。
+- [ ] 运行 `node scripts/verify-extension.js`，确认权限、文档、存储 key、导出文件名和原生字幕边界一致。
+- [ ] 运行 `node scripts/verify-background-behavior.js`，确认右键、快捷键和内容脚本消息都需要明确的 LR capture payload 才会保存。
+- [ ] 运行 `node scripts/verify-text-cleaning.js`，确认字幕、词典、旧记录显示和导出不会包含 LR 控件文案。
+- [ ] 按 [`docs/manual-verification.md`](./docs/manual-verification.md) 完成 Netflix / YouTube + Language Reactor 手动验收。
 - [ ] 在全新浏览器配置中测试安装。
 
 正确打包方式示例：
 
 ```bash
-zip -r subtitle-vocab-companion-v0.1.3.zip manifest.json background.js content.js popup.html popup.js popup.css README.md PRIVACY.md LICENSE
+zip -r subtitle-vocab-companion-v0.2.0.zip manifest.json background.js content.js popup.html popup.js popup.css README.md PRIVACY.md LICENSE LICENSE.txt
 ```
 
 不要把外层文件夹直接压进 ZIP。上传 Chrome Web Store 的 ZIP 打开后，第一层应该能直接看到 `manifest.json`。
@@ -30,7 +34,7 @@ zip -r subtitle-vocab-companion-v0.1.3.zip manifest.json background.js content.j
 
 ### 单一用途
 
-帮助用户在 Netflix + Language Reactor 学习场景下保存英文字幕单词、字幕上下文和词典解释，并导出到 Anki 进行个人复习。
+帮助用户在 Netflix / YouTube + Language Reactor 学习场景下保存英文字幕单词、字幕上下文和词典解释，并导出到 Anki 进行个人复习。
 
 ### 权限解释
 
@@ -38,6 +42,7 @@ zip -r subtitle-vocab-companion-v0.1.3.zip manifest.json background.js content.j
 - `contextMenus`：提供右键保存入口。
 - `commands`：提供快捷键保存入口。
 - `*://www.netflix.com/*`：只在 Netflix 页面读取用户可见的字幕和 Language Reactor 词典面板内容。
+- `*://www.youtube.com/*`：只在 YouTube 页面读取用户可见的 Language Reactor 字幕和词典面板内容；不读取 YouTube 原生字幕系统。
 
 ### 隐私说明
 
@@ -45,7 +50,7 @@ zip -r subtitle-vocab-companion-v0.1.3.zip manifest.json background.js content.j
 
 ## 4. 审核风险点
 
-- 名称和描述不要让人误以为这是 Netflix 或 Language Reactor 官方插件。
+- 名称和描述不要让人误以为这是 Netflix、YouTube 或 Language Reactor 官方插件。
 - 不要声称可以绕过网站限制。
 - 不要鼓励批量复制、分发字幕或影视内容。
 - 截图中如包含影视画面或字幕，注意版权和个人用途说明。
