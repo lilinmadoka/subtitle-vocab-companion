@@ -1,6 +1,9 @@
 const STORAGE_KEY = 'vocabItems';
 const SETTINGS_KEY = 'settings_v1';
 const DEFAULT_SETTINGS = { autoSaveOnSubtitleClick: true };
+const LR_CONTROL_TEXT_PATTERNS = [
+  /保存短语/g
+];
 
 let allItems = [];
 
@@ -16,6 +19,14 @@ function storageSet(obj) {
 
 function collapseWhitespace(text) {
   return String(text || '').replace(/\s+/g, ' ').trim();
+}
+
+function removeLrControlText(text) {
+  let value = String(text || '');
+  for (const pattern of LR_CONTROL_TEXT_PATTERNS) {
+    value = value.replace(pattern, ' ');
+  }
+  return value;
 }
 
 function formatTime(ts) {
@@ -38,7 +49,7 @@ function escapeHtml(text) {
 
 function stripHtml(html) {
   const div = document.createElement('div');
-  div.innerHTML = String(html || '');
+  div.innerHTML = removeLrControlText(html || '');
   return div.textContent || div.innerText || '';
 }
 
@@ -49,11 +60,11 @@ function previewText(text, maxLen = 240) {
 }
 
 function sanitizeField(text) {
-  return collapseWhitespace(text).replace(/\t/g, ' ');
+  return collapseWhitespace(removeLrControlText(text)).replace(/\t/g, ' ');
 }
 
 function tsvField(text) {
-  return String(text || '').replace(/\r?\n/g, ' ').replace(/\t/g, ' ').trim();
+  return removeLrControlText(text).replace(/\r?\n/g, ' ').replace(/\t/g, ' ').trim();
 }
 
 function htmlifyPlainText(text) {
@@ -61,7 +72,7 @@ function htmlifyPlainText(text) {
 }
 
 function getMeaningPreview(item) {
-  const text = String(item.wordMeaning || '').trim() || stripHtml(item.wordMeaningHtml || '');
+  const text = removeLrControlText(item.wordMeaning || '').trim() || stripHtml(item.wordMeaningHtml || '');
   return previewText(text);
 }
 
@@ -74,8 +85,8 @@ function buildFront(item) {
 function buildBack(item) {
   const parts = [];
   const sentenceMeaning = sanitizeField(item.sentenceMeaning || '');
-  const dictHtml = String(item.wordMeaningHtml || '').trim();
-  const dictText = String(item.wordMeaning || '').trim();
+  const dictHtml = removeLrControlText(item.wordMeaningHtml || '').trim();
+  const dictText = removeLrControlText(item.wordMeaning || '').trim();
 
   if (sentenceMeaning) {
     parts.push(`<div>${htmlifyPlainText(sentenceMeaning)}</div>`);
@@ -241,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (btn.dataset.act === 'copy') {
-      const meaningText = String(item.wordMeaning || '').trim() || stripHtml(item.wordMeaningHtml || '');
+      const meaningText = removeLrControlText(item.wordMeaning || '').trim() || stripHtml(item.wordMeaningHtml || '');
       const text = [item.word, item.sentence, meaningText, item.sentenceMeaning, item.url]
         .filter(Boolean)
         .join('\n')

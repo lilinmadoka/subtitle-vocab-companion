@@ -42,11 +42,13 @@ Run these before manual browser testing:
 ```powershell
 node scripts\verify-extension.js
 node scripts\verify-background-behavior.js
+node scripts\verify-text-cleaning.js
 node --check content.js
 node --check background.js
 node --check popup.js
 node --check scripts\verify-extension.js
 node --check scripts\verify-background-behavior.js
+node --check scripts\verify-text-cleaning.js
 ```
 
 ## Chrome Setup
@@ -66,6 +68,7 @@ Pass criteria:
 - Right-clicking selected subtitle text and choosing "保存到单词本" saves one Vocabulary Card.
 - `Alt + Shift + S` saves from the current LR subtitle context.
 - The saved card includes the word, English sentence, source URL, and playback time when a video element is available.
+- The saved card does not include Language Reactor control text such as "保存短语".
 - Chinese subtitle context is saved when Language Reactor displays it near the English subtitle.
 - LR dictionary explanation is saved when the LR dictionary panel opens in time.
 - Popup search, copy, delete, Anki TSV export, word CSV export, and word-count CSV export still work for old and new cards.
@@ -79,6 +82,7 @@ Pass criteria:
 - Right-clicking selected LR subtitle text and choosing "保存到单词本" saves one Vocabulary Card.
 - `Alt + Shift + S` saves from the current LR subtitle context.
 - The saved card includes optional additive metadata: `site`, `siteName`, and `pageTitle`.
+- The saved card does not include Language Reactor control text such as "保存短语".
 - The saved card remains compatible with existing popup display, copy, delete, and export behavior.
 - Translation context and LR dictionary explanation are saved when Language Reactor exposes them.
 

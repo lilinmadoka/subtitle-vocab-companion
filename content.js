@@ -5,6 +5,10 @@ const DEFAULT_SETTINGS = { autoSaveOnSubtitleClick: true };
 const DICT_WAIT_TIMEOUT_MS = 1800;
 const DICT_WAIT_INTERVAL_MS = 140;
 const MAX_DICT_TEXT_LEN = 5000;
+const MAX_DICTIONARY_EXAMPLE_LINES = 3;
+const LR_CONTROL_TEXT_PATTERNS = [
+  /保存短语/g
+];
 
 const SUPPORTED_SITES = [
   {
@@ -137,13 +141,22 @@ function collapseWhitespace(text) {
   return String(text || '').replace(/\s+/g, ' ').trim();
 }
 
+function removeLrControlText(text) {
+  let value = String(text || '');
+  for (const pattern of LR_CONTROL_TEXT_PATTERNS) {
+    value = value.replace(pattern, ' ');
+  }
+  return value;
+}
+
 function normalizeSentenceText(text) {
-  let value = collapseWhitespace(text);
+  let value = collapseWhitespace(removeLrControlText(text));
   if (!value) return '';
 
   value = value.replace(/\s+([,.!?;:])/g, '$1');
   value = value.replace(/([A-Za-z])\s+([’'])\s+([A-Za-z])/g, '$1$2$3');
   value = value.replace(/\b([A-Za-z]+)\s+([’'](?:s|t|re|ve|ll|d|m))\b/g, '$1$2');
+  value = value.replace(/\[\s+([^\]]+?)\s+\]/g, '[$1]');
   value = value.replace(/^([A-Z][A-Za-z0-9_-]{1,24})\s+\]\s+/, '[$1] ');
   value = value.replace(/^([A-Z][A-Za-z0-9_-]{1,24})\]\s+/, '[$1] ');
   value = value.replace(/\s{2,}/g, ' ').trim();
@@ -465,18 +478,38 @@ function stripDictionaryControls(root) {
 
 function cleanDictionaryLines(text) {
   const out = [];
-  let prev = '';
+  const seen = new Set();
+  let section = '';
+  let exampleLines = 0;
 
   for (const rawLine of String(text || '').replace(/\r/g, '').split('\n')) {
-    const line = collapseWhitespace(rawLine);
+    const line = collapseWhitespace(removeLrControlText(rawLine));
     if (!line) continue;
+    if (/^示例：\s*当前文本/.test(line)) {
+      section = 'current-text-example';
+      continue;
+    }
+    if (/^示例：/.test(line)) {
+      section = 'examples';
+      exampleLines = 0;
+      continue;
+    }
+    if (section === 'current-text-example') continue;
+    if (/^>>\s*/.test(line)) continue;
     if (/^(解释|例子|语法)$/.test(line)) continue;
     if (/^(Re|Ca|Wr|Gl|Wi|Ba)(\s+(Re|Ca|Wr|Gl|Wi|Ba))*$/i.test(line)) continue;
     if (/^标记\s*>>$/i.test(line)) continue;
     if (/^[✓✔✕✖×○●◉]$/.test(line)) continue;
-    if (line === prev) continue;
+    if (/^\[[^\]]+\]$/.test(line)) continue;
+    if (section === 'examples') {
+      if (exampleLines >= MAX_DICTIONARY_EXAMPLE_LINES) continue;
+      exampleLines += 1;
+    }
+
+    const key = line.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
     out.push(line);
-    prev = line;
   }
 
   const joined = out.join('\n');

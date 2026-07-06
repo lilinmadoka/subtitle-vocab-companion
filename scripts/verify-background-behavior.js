@@ -135,7 +135,8 @@ async function run() {
     const harness = makeHarness(async () => ({
       captureAvailable: true,
       word: 'chosen',
-      sentence: 'chosen words matter',
+      sentence: 'chosen words matter 保存短语',
+      wordMeaning: 'meaning 保存短语',
       site: 'youtube',
       siteName: 'YouTube',
       pageTitle: 'Video title'
@@ -143,6 +144,8 @@ async function run() {
     await triggerContextMenu(harness);
     assert(items(harness.storage).length === 1, 'context menu should save valid LR payload');
     assert(items(harness.storage)[0].site === 'youtube', 'context menu should preserve additive site metadata');
+    assert(!items(harness.storage)[0].sentence.includes('保存短语'), 'context menu should clean control text before saving');
+    assert(!items(harness.storage)[0].wordMeaning.includes('保存短语'), 'context menu should clean dictionary control text before saving');
   }
 
   {

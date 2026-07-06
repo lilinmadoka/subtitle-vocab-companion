@@ -4,6 +4,9 @@ const DOCUMENT_URL_PATTERNS = [
   '*://www.netflix.com/*',
   '*://www.youtube.com/*'
 ];
+const LR_CONTROL_TEXT_PATTERNS = [
+  /保存短语/g
+];
 
 function storageGet(key, fallbackValue) {
   return new Promise((resolve) => {
@@ -24,14 +27,22 @@ function normalize(text) {
     .trim();
 }
 
+function removeLrControlText(text) {
+  let value = String(text || '');
+  for (const pattern of LR_CONTROL_TEXT_PATTERNS) {
+    value = value.replace(pattern, ' ');
+  }
+  return value.trim();
+}
+
 function sanitizeItem(item) {
   return {
     id: item?.id || crypto.randomUUID(),
-    word: normalize(item?.word || ''),
-    sentence: String(item?.sentence || '').trim(),
-    wordMeaning: String(item?.wordMeaning || '').trim(),
-    wordMeaningHtml: String(item?.wordMeaningHtml || '').trim(),
-    sentenceMeaning: String(item?.sentenceMeaning || '').trim(),
+    word: normalize(removeLrControlText(item?.word || '')),
+    sentence: removeLrControlText(item?.sentence || ''),
+    wordMeaning: removeLrControlText(item?.wordMeaning || ''),
+    wordMeaningHtml: removeLrControlText(item?.wordMeaningHtml || ''),
+    sentenceMeaning: removeLrControlText(item?.sentenceMeaning || ''),
     url: String(item?.url || '').trim(),
     t_ms: Number.isFinite(item?.t_ms) ? item.t_ms : null,
     createdAt: item?.createdAt || Date.now(),
