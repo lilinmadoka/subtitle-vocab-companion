@@ -1,6 +1,8 @@
 const STORAGE_KEY = 'vocabItems';
 const SETTINGS_KEY = 'settings_v1';
 const DEFAULT_SETTINGS = { autoSaveOnSubtitleClick: true };
+const MAX_BACK_DEFINITION_LINES = 2;
+const MAX_BACK_EXAMPLE_LINES = 3;
 const LR_CONTROL_TEXT_PATTERNS = [
   /保存短语/g
 ];
@@ -47,6 +49,10 @@ function escapeHtml(text) {
   }[c]));
 }
 
+function escapeRegExp(text) {
+  return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function stripHtml(html) {
   const div = document.createElement('div');
   div.innerHTML = removeLrControlText(html || '');
@@ -71,34 +77,160 @@ function htmlifyPlainText(text) {
   return escapeHtml(String(text || '').replace(/\r/g, '')).replace(/\n/g, '<br>');
 }
 
+function highlightPlainText(text, word) {
+  const source = String(text || '');
+  const target = sanitizeField(word || '');
+  if (!source || !target) return htmlifyPlainText(source);
+
+  const useWordBoundary = /^[A-Za-z0-9]+$/.test(target);
+  const pattern = useWordBoundary
+    ? `\\b${escapeRegExp(target)}\\b`
+    : escapeRegExp(target);
+  const re = new RegExp(pattern, 'ig');
+
+  let out = '';
+  let lastIndex = 0;
+  let matched = false;
+  source.replace(re, (match, offset) => {
+    matched = true;
+    out += escapeHtml(source.slice(lastIndex, offset));
+    out += `<b>${escapeHtml(match)}</b>`;
+    lastIndex = offset + match.length;
+    return match;
+  });
+
+  if (!matched) return htmlifyPlainText(source);
+  out += escapeHtml(source.slice(lastIndex));
+  return out.replace(/\n/g, '<br>');
+}
+
+function splitCleanLines(text) {
+  return String(text || '')
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => sanitizeField(line))
+    .filter(Boolean);
+}
+
+function comparableText(text) {
+  return sanitizeField(text).toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, ' ').trim();
+}
+
+function isPartOfSpeechLine(line) {
+  return /^\((?!ANY\)?)[A-Za-z][A-Za-z.\s-]{0,24}\)$/.test(line);
+}
+
+function isDiscardedDictionaryLine(line, word, sentence) {
+  const value = sanitizeField(line);
+  if (!value) return true;
+  if (/^示例/.test(value)) return true;
+  if (/^>>\s*/.test(value)) return true;
+  if (/^\[[^\]]+\]$/.test(value)) return true;
+  if (/^\(ANY\)$/i.test(value)) return true;
+  if (value.toLowerCase() === String(word || '').trim().toLowerCase()) return true;
+
+  const comparable = comparableText(value);
+  const sentenceComparable = comparableText(sentence);
+  return !!(sentenceComparable && comparable && sentenceComparable.includes(comparable));
+}
+
+function isEnglishExampleLine(line) {
+  if (/[\u4e00-\u9fff]/.test(line)) return false;
+  if (!/[A-Za-z]/.test(line)) return false;
+  return line.split(/\s+/).length >= 4;
+}
+
+function parseDictionary(item) {
+  const word = sanitizeField(item.word || '');
+  const rawText = removeLrControlText(item.wordMeaning || '').trim() || stripHtml(item.wordMeaningHtml || '');
+  const lines = splitCleanLines(rawText);
+  const definitions = [];
+  const examples = [];
+  const seenDefinitions = new Set();
+  const seenExamples = new Set();
+  let partOfSpeech = '';
+
+  for (const line of lines) {
+    if (isDiscardedDictionaryLine(line, word, item.sentence || '')) continue;
+
+    if (!partOfSpeech && isPartOfSpeechLine(line)) {
+      partOfSpeech = line.replace(/[()]/g, '');
+      continue;
+    }
+
+    if (isEnglishExampleLine(line)) {
+      const key = comparableText(line);
+      if (!seenExamples.has(key) && examples.length < MAX_BACK_EXAMPLE_LINES) {
+        examples.push(line);
+        seenExamples.add(key);
+      }
+      continue;
+    }
+
+    if (!/[\u4e00-\u9fff]/.test(line)) continue;
+    const key = comparableText(line);
+    if (!seenDefinitions.has(key) && definitions.length < MAX_BACK_DEFINITION_LINES) {
+      definitions.push(line);
+      seenDefinitions.add(key);
+    }
+  }
+
+  return { definitions, examples, partOfSpeech };
+}
+
 function getMeaningPreview(item) {
   const text = removeLrControlText(item.wordMeaning || '').trim() || stripHtml(item.wordMeaningHtml || '');
   return previewText(text);
 }
 
 function buildFront(item) {
-  const word = htmlifyPlainText(sanitizeField(item.word || ''));
-  const sentence = htmlifyPlainText(sanitizeField(item.sentence || ''));
-  return sentence ? `${word}<br><br>${sentence}` : word;
+  const word = sanitizeField(item.word || '');
+  const sentence = sanitizeField(item.sentence || '');
+  const parts = [
+    `<div style="font-size:24px;font-weight:700;line-height:1.3;">${htmlifyPlainText(word)}</div>`
+  ];
+
+  if (sentence) {
+    parts.push(
+      `<div style="margin-top:14px;font-size:18px;line-height:1.45;">${highlightPlainText(sentence, word)}</div>`
+    );
+  }
+
+  return parts.join('');
 }
 
 function buildBack(item) {
   const parts = [];
   const sentenceMeaning = sanitizeField(item.sentenceMeaning || '');
-  const dictHtml = removeLrControlText(item.wordMeaningHtml || '').trim();
-  const dictText = removeLrControlText(item.wordMeaning || '').trim();
+  const word = sanitizeField(item.word || '');
+  const dictionary = parseDictionary(item);
 
   if (sentenceMeaning) {
-    parts.push(`<div>${htmlifyPlainText(sentenceMeaning)}</div>`);
+    parts.push(`<div style="font-size:17px;line-height:1.55;">${htmlifyPlainText(sentenceMeaning)}</div>`);
   }
 
-  if (dictHtml) {
-    parts.push(dictHtml);
-  } else if (dictText) {
-    parts.push(`<div>${htmlifyPlainText(dictText)}</div>`);
+  if (word || dictionary.partOfSpeech || dictionary.definitions.length) {
+    const head = [];
+    if (word) {
+      head.push(`<div style="font-size:22px;font-weight:700;line-height:1.3;">${htmlifyPlainText(word)}</div>`);
+    }
+    if (dictionary.partOfSpeech) {
+      head.push(`<div style="opacity:.78;margin-top:2px;">${htmlifyPlainText(dictionary.partOfSpeech)}</div>`);
+    }
+    if (dictionary.definitions.length) {
+      head.push(`<div style="margin-top:8px;line-height:1.55;">${dictionary.definitions.map(htmlifyPlainText).join('<br>')}</div>`);
+    }
+    parts.push(`<div>${head.join('')}</div>`);
   }
 
-  return parts.join('<br><br>');
+  if (dictionary.examples.length) {
+    const exampleHtml = dictionary.examples
+      .map((example) => `<div style="margin-top:4px;">• ${highlightPlainText(example, word)}</div>`)
+      .join('');
+    parts.push(`<div style="line-height:1.45;"><div style="font-weight:600;margin-bottom:4px;">Examples</div>${exampleHtml}</div>`);
+  }
+
+  return parts.join('<div style="height:12px;"></div>');
 }
 
 async function load() {

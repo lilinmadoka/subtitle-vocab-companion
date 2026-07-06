@@ -108,4 +108,44 @@ assert(
   'popup export HTML should clean old saved control text'
 );
 
+const formattedItem = {
+  word: 'environment',
+  sentence: 'and improving the environment in which the model runs. As I sort of said with',
+  sentenceMeaning: '\u4ee5\u53ca\u2026\u2026\u6539\u5584\u6a21\u578b\u8fd0\u884c\u7684\u73af\u5883\u3002',
+  wordMeaning: [
+    'environment',
+    '\u73af\u5883, \u5468\u56f4, \u6c14\u6c1b',
+    'environment',
+    '(noun)',
+    '\u73af\u5883, \u5468\u56f4, \u81ea\u7136\u73af\u5883, \u751f\u6001\u73af\u5883, \u6c14\u6c1b',
+    '(ANY)',
+    '\u73af\u5883, \u56db\u5468, \u6c14\u6c1b',
+    '\u80cc\u666f, \u751f\u6d3b\u73af\u5883, \u73af\u4fdd',
+    '\u793a\u4f8b\uff1a\u5f53\u524d\u6587\u672c',
+    'and improving the environment in which the model runs.\u4fdd\u5b58\u77ed\u8bed',
+    '>> exactly people are focused on the wrong thing',
+    '\u793a\u4f8b\uff1a Tatoeba[noun]',
+    'We must try to protect the environment.',
+    'This is bad for the environment',
+    'Eating meat is bad for the environment.',
+    'Do you care about the environment?',
+    'Our character is affected by the environment.'
+  ].join('\n')
+};
+
+const front = popupContext.buildFront(formattedItem);
+assert(front.includes('<b>environment</b>'), 'Anki front should highlight the target word in the sentence');
+assert(front.includes('font-size:24px'), 'Anki front should make the word visually prominent');
+
+const back = popupContext.buildBack(formattedItem);
+assert(back.includes('\u4ee5\u53ca'), 'Anki back should include sentence translation first');
+assert(back.includes('noun'), 'Anki back should include the primary part of speech');
+assert(back.includes('\u73af\u5883, \u5468\u56f4, \u6c14\u6c1b'), 'Anki back should include concise definitions');
+assert(!back.includes('\u4fdd\u5b58\u77ed\u8bed'), 'Anki back should remove LR control text');
+assert(!back.includes('\u793a\u4f8b'), 'Anki back should remove LR example headers');
+assert(!back.includes('exactly people are focused'), 'Anki back should remove LR alignment/debug lines');
+assert(!back.includes('Do you care about the environment?'), 'Anki back should limit excessive examples');
+assert(!back.includes('(ANY)'), 'Anki back should suppress broad ANY labels');
+assert((back.match(/•/g) || []).length === 3, 'Anki back should include at most three examples');
+
 console.log('text cleaning verification ok');
